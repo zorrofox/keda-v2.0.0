@@ -1,18 +1,19 @@
 ##################################################
 # Variables                                      #
 ##################################################
-VERSION		   ?= main
+VERSION		   ?= v2.0.0
 IMAGE_REGISTRY ?= docker.io
 IMAGE_REPO     ?= kedacore
 
 IMAGE_CONTROLLER = $(IMAGE_REGISTRY)/$(IMAGE_REPO)/keda:$(VERSION)
 IMAGE_ADAPTER    = $(IMAGE_REGISTRY)/$(IMAGE_REPO)/keda-metrics-apiserver:$(VERSION)
 
-IMAGE_BUILD_TOOLS = $(IMAGE_REGISTRY)/$(IMAGE_REPO)/build-tools:main
+IMAGE_BUILD_TOOLS = $(IMAGE_REGISTRY)/$(IMAGE_REPO)/build-tools:$(VERSION)
 
 ARCH       ?=amd64
 CGO        ?=0
 TARGET_OS  ?=linux
+GO_PROXY   ?=direct
 
 GIT_VERSION = $(shell git describe --always --abbrev=7)
 GIT_COMMIT  = $(shell git rev-list -1 HEAD)
@@ -27,7 +28,7 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
-GO_BUILD_VARS= GO111MODULE=on CGO_ENABLED=$(CGO) GOOS=$(TARGET_OS) GOARCH=$(ARCH)
+GO_BUILD_VARS= GO111MODULE=on CGO_ENABLED=$(CGO) GOOS=$(TARGET_OS) GOARCH=$(ARCH) GOPROXY=$(GO_PROXY)
 
 ##################################################
 # All                                            #
@@ -131,8 +132,12 @@ build: manifests set-version manager adapter
 
 # Build the docker image
 docker-build:
-	docker build . -t ${IMAGE_CONTROLLER} --build-arg BUILD_VERSION=${VERSION}
-	docker build -f Dockerfile.adapter -t ${IMAGE_ADAPTER} . --build-arg BUILD_VERSION=${VERSION}
+	docker build . -t ${IMAGE_CONTROLLER} --build-arg BUILD_VERSION=${VERSION} --build-arg BUILD_ARCH=${ARCH}
+	docker build -f Dockerfile.adapter -t ${IMAGE_ADAPTER} . --build-arg BUILD_VERSION=${VERSION} --build-arg BUILD_ARCH=${ARCH}
+
+docker-buildx:
+	docker buildx build --platform ${TARGET_OS}/${ARCH} . -t ${IMAGE_CONTROLLER} --build-arg BUILD_VERSION=${VERSION} --build-arg BUILD_ARCH=${ARCH}
+	docker buildx build --platform ${TARGET_OS}/${ARCH} -f Dockerfile.adapter -t ${IMAGE_ADAPTER} . --build-arg BUILD_VERSION=${VERSION} --build-arg BUILD_ARCH=${ARCH}
 
 # Build KEDA Operator binary
 .PHONY: manager

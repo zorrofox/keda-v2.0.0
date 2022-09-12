@@ -2,6 +2,7 @@
 FROM golang:1.15.3 as builder
 
 ARG BUILD_VERSION
+ARG BUILD_ARCH
 
 WORKDIR /workspace
 
@@ -10,7 +11,7 @@ COPY go.mod go.mod
 COPY go.sum go.sum
 # cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer
-RUN go mod download
+RUN go env -w GOPROXY=https://goproxy.cn && go mod download
 
 COPY Makefile Makefile
 
@@ -26,7 +27,7 @@ COPY pkg/ pkg/
 COPY .git/ .git/
 
 # Build
-RUN VERSION=${BUILD_VERSION} make manager
+RUN VERSION=${BUILD_VERSION} ARCH=${BUILD_ARCH} make manager
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
