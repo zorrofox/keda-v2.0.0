@@ -31,7 +31,8 @@ RUN VERSION=${BUILD_VERSION} ARCH=${BUILD_ARCH} make manager
 
 # Use distroless as minimal base image to package the manager binary
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM gcr.io/distroless/static:nonroot
+# FROM gcr.io/distroless/static:nonroot
+FROM anjia0532/distroless.static:nonroot
 WORKDIR /
 COPY --from=builder /workspace/bin/keda .
 USER nonroot:nonroot
